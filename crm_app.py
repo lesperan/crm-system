@@ -98,38 +98,50 @@ def parse_revenue(revenue_str):
 
 # 자동완성용 데이터 가져오기 함수들
 @st.cache_data(ttl=300)  # 5분간 캐시
-def get_company_names(conn):
+def get_company_names():
     """기업명 목록 가져오기"""
     try:
+        conn = sqlite3.connect('crm_database.db', check_same_thread=False)
         cursor = conn.execute("SELECT DISTINCT company_name FROM companies WHERE company_name IS NOT NULL ORDER BY company_name")
-        return [row[0] for row in cursor.fetchall()]
+        result = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return result
     except:
         return []
 
 @st.cache_data(ttl=300)  # 5분간 캐시
-def get_customer_names(conn):
+def get_customer_names():
     """고객명 목록 가져오기"""
     try:
+        conn = sqlite3.connect('crm_database.db', check_same_thread=False)
         cursor = conn.execute("SELECT DISTINCT customer_name FROM customer_contacts WHERE customer_name IS NOT NULL ORDER BY customer_name")
-        return [row[0] for row in cursor.fetchall()]
+        result = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return result
     except:
         return []
 
 @st.cache_data(ttl=300)  # 5분간 캐시
-def get_industries(conn):
+def get_industries():
     """업종 목록 가져오기"""
     try:
+        conn = sqlite3.connect('crm_database.db', check_same_thread=False)
         cursor = conn.execute("SELECT DISTINCT industry FROM companies WHERE industry IS NOT NULL ORDER BY industry")
-        return [row[0] for row in cursor.fetchall()]
+        result = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return result
     except:
         return []
 
 @st.cache_data(ttl=300)  # 5분간 캐시
-def get_positions(conn):
+def get_positions():
     """직위 목록 가져오기"""
     try:
+        conn = sqlite3.connect('crm_database.db', check_same_thread=False)
         cursor = conn.execute("SELECT DISTINCT position FROM customer_contacts WHERE position IS NOT NULL ORDER BY position")
-        return [row[0] for row in cursor.fetchall()]
+        result = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return result
     except:
         return []
 
@@ -526,7 +538,7 @@ elif menu == "상담 이력 관리":
         st.subheader("상담 이력 직접 입력")
         
         # 기업명 자동완성
-        company_names = get_company_names(conn)
+        company_names = get_company_names()
         
         if company_names:
             # 기업명 선택 (자동완성 지원)
@@ -544,7 +556,7 @@ elif menu == "상담 이력 관리":
                 st.write(f"선택된 기업: **{selected_company_name}**")
             
             # 고객명 자동완성
-            customer_names = get_customer_names(conn)
+            customer_names = get_customer_names()
             selected_customer_name = st.selectbox(
                 "고객 선택 (또는 새 고객명 입력)",
                 ["새 고객명 입력"] + customer_names,
@@ -687,8 +699,8 @@ elif menu == "통합 데이터 조회":
         
         if not companies_df.empty:
             # 자동완성 데이터 준비
-            company_names = get_company_names(conn)
-            industries = get_industries(conn)
+            company_names = get_company_names()
+            industries = get_industries()
             
             # 컬럼 설정 (편집 가능한 컬럼 지정)
             column_config = {
@@ -844,8 +856,8 @@ elif menu == "통합 데이터 조회":
         st.info("💡 **빠른 상담 이력 추가:** 기존 고객사와 담당자 정보를 활용하여 신속하게 상담 이력을 추가할 수 있습니다.")
         
         # 자동완성 데이터 준비
-        company_names = get_company_names(conn)
-        customer_names = get_customer_names(conn)
+        company_names = get_company_names()
+        customer_names = get_customer_names()
         
         if company_names:
             col1, col2 = st.columns(2)
