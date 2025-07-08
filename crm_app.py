@@ -5,8 +5,14 @@ import io
 from datetime import datetime
 import re
 
-# 데이터베이스 관련 함수들 import (단순화된 방식)
-from database_utils import init_database, generate_company_code, parse_revenue
+# 데이터베이스 관련 함수들 import 
+from database_utils import (
+    init_database, 
+    generate_company_code, 
+    parse_revenue, 
+    get_writable_connection, 
+    test_write_permission
+)
 
 # 페이지 설정
 st.set_page_config(
