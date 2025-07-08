@@ -4,9 +4,32 @@ import sqlite3
 import io
 from datetime import datetime
 import re
+import sys
+import os
 
-# 데이터베이스 관련 함수들 import
-from database import init_database, generate_company_code, parse_revenue
+# 현재 디렉토리를 Python 경로에 추가
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
+# 데이터베이스 관련 함수들을 직접 import
+try:
+    from database.connection import init_database, generate_company_code, parse_revenue
+except ImportError:
+    # 백업 방법: 직접 파일 경로로 import
+    import importlib.util
+    
+    # connection.py 파일 경로
+    connection_path = os.path.join(current_dir, 'database', 'connection.py')
+    
+    # 모듈 동적 로드
+    spec = importlib.util.spec_from_file_location("connection", connection_path)
+    connection_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(connection_module)
+    
+    # 함수들 가져오기
+    init_database = connection_module.init_database
+    generate_company_code = connection_module.generate_company_code
+    parse_revenue = connection_module.parse_revenue
 
 # 페이지 설정
 st.set_page_config(
