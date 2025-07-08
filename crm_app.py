@@ -695,35 +695,38 @@ elif menu == "통합 데이터 조회":
             col1, col2, col3 = st.columns([1, 1, 2])
             
             with col1:
-                if st.button("💾 변경사항 저장", type="primary"):
-                    try:
-                        changes_count = 0
-                        errors = []
-                        
-                        # 원본과 편집된 데이터 비교
-                        for idx, (original_row, edited_row) in enumerate(zip(companies_df.itertuples(), edited_df.itertuples())):
-                            # 변경사항이 있는지 확인
-                            if not original_row[1:] == edited_row[1:]:  # 인덱스 제외하고 비교
-                                company_code = edited_row.업체코드
-                                
-                                # 필수 필드 검증
-                                if not edited_row.기업명 or edited_row.기업명.strip() == "":
-                                    errors.append(f"행 {idx+1}: 기업명은 필수입니다.")
-                                    continue
-                                
-                                # 업데이트 실행
-                                updated_data = {
-                                    '기업명': edited_row.기업명,
-                                    '매출액_2024': edited_row.매출액_2024,
-                                    '업종': edited_row.업종,
-                                    '종업원수': edited_row.종업원수,
-                                    '주소': edited_row.주소,
-                                    '상품': edited_row.상품,
-                                    '고객구분': edited_row.고객구분
-                                }
-                                
-                                success, message = update_company_data(conn, company_code, updated_data)
-                                if success:
+if st.button("💾 변경사항 저장", type="primary"):
+    try:
+        # 새로운 쓰기 가능한 연결 생성
+        write_conn = get_writable_connection()
+        
+        changes_count = 0
+        errors = []
+        
+        # 원본과 편집된 데이터 비교
+        for idx, (original_row, edited_row) in enumerate(zip(companies_df.itertuples(), edited_df.itertuples())):
+            # 변경사항이 있는지 확인
+            if not original_row[1:] == edited_row[1:]:  # 인덱스 제외하고 비교
+                company_code = edited_row.업체코드
+                
+                # 필수 필드 검증
+                if not edited_row.기업명 or edited_row.기업명.strip() == "":
+                    errors.append(f"행 {idx+1}: 기업명은 필수입니다.")
+                    continue
+                
+                # 업데이트 실행
+                updated_data = {
+                    '기업명': edited_row.기업명,
+                    '매출액_2024': edited_row.매출액_2024,
+                    '업종': edited_row.업종,
+                    '종업원수': edited_row.종업원수,
+                    '주소': edited_row.주소,
+                    '상품': edited_row.상품,
+                    '고객구분': edited_row.고객구분
+                }
+                
+                success, message = update_company_data(write_conn, company_code, updated_data)  # conn → write_conn
+                if success:
                                     changes_count += 1
                                 else:
                                     errors.append(f"행 {idx+1}: {message}")
@@ -774,6 +777,7 @@ elif menu == "통합 데이터 조회":
                         
                         if changes_count == 0 and not errors:
                             st.info("변경사항이 없습니다.")
+                            write_conn.close()                
                             
                     except Exception as e:
                         st.error(f"저장 중 오류 발생: {str(e)}")
