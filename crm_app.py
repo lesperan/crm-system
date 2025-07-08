@@ -693,79 +693,45 @@ elif menu == "통합 데이터 조회":
             
             # 변경사항 저장
             col1, col2, col3 = st.columns([1, 1, 2])
-            
+                        
             with col1:
                 if st.button("💾 변경사항 저장", type="primary"):
                     try:
-                        # 새로운 쓰기 가능한 연결 생성
                         write_conn = get_writable_connection()
                         
                         changes_count = 0
                         errors = []
-        
-        # 원본과 편집된 데이터 비교
-        for idx, (original_row, edited_row) in enumerate(zip(companies_df.itertuples(), edited_df.itertuples())):
-            # 변경사항이 있는지 확인
-            if not original_row[1:] == edited_row[1:]:  # 인덱스 제외하고 비교
-                company_code = edited_row.업체코드
-                
-                # 필수 필드 검증
-                if not edited_row.기업명 or edited_row.기업명.strip() == "":
-                    errors.append(f"행 {idx+1}: 기업명은 필수입니다.")
-                    continue
-                
-                # 업데이트 실행
-                updated_data = {
-                    '기업명': edited_row.기업명,
-                    '매출액_2024': edited_row.매출액_2024,
-                    '업종': edited_row.업종,
-                    '종업원수': edited_row.종업원수,
-                    '주소': edited_row.주소,
-                    '상품': edited_row.상품,
-                    '고객구분': edited_row.고객구분
-                }
-                
-                success, message = update_company_data(write_conn, company_code, updated_data)  # conn → write_conn
-                if success:
+                        
+                        for idx, (original_row, edited_row) in enumerate(zip(companies_df.itertuples(), edited_df.itertuples())):
+                            # 변경사항이 있는지 확인
+                            if not original_row[1:] == edited_row[1:]:
+                                company_code = edited_row.업체코드
+                                
+                                # 필수 필드 검증
+                                if not edited_row.기업명 or edited_row.기업명.strip() == "":
+                                    errors.append(f"행 {idx+1}: 기업명은 필수입니다.")
+                                    continue
+                                
+                                # 업데이트 실행
+                                updated_data = {
+                                    '기업명': edited_row.기업명,
+                                    '매출액_2024': edited_row.매출액_2024,
+                                    '업종': edited_row.업종,
+                                    '종업원수': edited_row.종업원수,
+                                    '주소': edited_row.주소,
+                                    '상품': edited_row.상품,
+                                    '고객구분': edited_row.고객구분
+                                }
+                                
+                                success, message = update_company_data(write_conn, company_code, updated_data)
+                                if success:
                                     changes_count += 1
                                 else:
                                     errors.append(f"행 {idx+1}: {message}")
                         
-                        # 새로 추가된 행 처리
-                        if len(edited_df) > len(companies_df):
-                            for idx in range(len(companies_df), len(edited_df)):
-                                new_row = edited_df.iloc[idx]
-                                
-                                if new_row['기업명'] and new_row['기업명'].strip():
-                                    try:
-                                        # 새 업체코드 생성
-                                        new_company_code = generate_company_code()
-                                        
-                                        # 새 기업 추가
-                                        conn.execute('''
-                                            INSERT INTO companies 
-                                            (company_code, company_name, revenue_2024, industry, employee_count, address, products, customer_category)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                        ''', (
-                                            new_company_code,
-                                            new_row['기업명'],
-                                            parse_revenue(new_row['매출액_2024']),
-                                            new_row['업종'] if new_row['업종'] else None,
-                                            int(new_row['종업원수']) if new_row['종업원수'] else None,
-                                            new_row['주소'] if new_row['주소'] else None,
-                                            new_row['상품'] if new_row['상품'] else None,
-                                            new_row['고객구분'] if new_row['고객구분'] else None
-                                        ))
-                                        changes_count += 1
-                                    except Exception as e:
-                                        errors.append(f"새 행 {idx+1}: 추가 실패 - {str(e)}")
-                        
-                        conn.commit()
-                        
                         # 결과 표시
                         if changes_count > 0:
                             st.success(f"✅ {changes_count}개의 변경사항이 저장되었습니다!")
-                            # 캐시 클리어
                             get_company_names.clear()
                             get_industries.clear()
                             st.rerun()
@@ -777,11 +743,11 @@ elif menu == "통합 데이터 조회":
                         
                         if changes_count == 0 and not errors:
                             st.info("변경사항이 없습니다.")
-                            write_conn.close()                
-                            
-                    except Exception as e:
-                        st.error(f"저장 중 오류 발생: {str(e)}")
-            
+                        
+                        write_conn.close()
+                        
+                    except Exception as e:  # 이 부분이 반드시 필요!
+                        st.error(f"저장 중 오류 발생: {str(e)}")            
             with col2:
                 if st.button("🔄 새로고침"):
                     st.rerun()
