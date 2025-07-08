@@ -26,7 +26,38 @@ def init_database():
         - 테이블이 없으면 자동으로 생성
         - 멀티스레드 환경 지원 (check_same_thread=False)
     """
-    conn = sqlite3.connect('crm_database.db', check_same_thread=False)
+    import os
+    
+    # 데이터베이스 파일 경로 확인 및 생성
+    db_path = 'crm_database.db'
+    
+    # 파일이 존재하지 않으면 빈 파일 생성
+    if not os.path.exists(db_path):
+        open(db_path, 'a').close()
+    
+    # 파일 권한 확인 및 설정
+    try:
+        if os.path.exists(db_path):
+            os.chmod(db_path, 0o666)  # 읽기/쓰기 권한 설정
+    except:
+        pass  # 권한 설정이 실패해도 계속 진행
+    
+    # 연결 옵션 개선
+    conn = sqlite3.connect(
+        db_path, 
+        check_same_thread=False,
+        timeout=30.0,  # 30초 타임아웃
+        isolation_level=None  # autocommit 모드
+    )
+    
+    # WAL 모드 설정 (동시 접근 개선)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL") 
+        conn.execute("PRAGMA cache_size=1000")
+        conn.execute("PRAGMA temp_store=memory")
+    except:
+        pass  # PRAGMA 설정이 실패해도 계속 진행
     
     # 기업 테이블 생성
     conn.execute('''
@@ -75,7 +106,16 @@ def init_database():
         )
     ''')
     
-    conn.commit()
+    # 즉시 커밋
+    try:
+        conn.commit()
+    except Exception as e:
+        st.error(f"데이터베이스 초기화 실패: {e}")
+        # 연결 재시도
+        conn.close()
+        conn = sqlite3.connect(db_path, check_same_thread=False, timeout=30.0)
+        conn.commit()
+    
     return conn
 
 
@@ -128,6 +168,66 @@ def parse_revenue(revenue_str):
         return float(revenue_str)
     except (ValueError, TypeError):
         return None
+
+
+def get_writable_connection():
+    """
+    쓰기 가능한 새로운 데이터베이스 연결 생성
+    편집 작업 시 사용
+    
+    Returns:
+        sqlite3.Connection: 쓰기 가능한 데이터베이스 연결
+    """
+    import os
+    
+    db_path = 'crm_database.db'
+    
+    # 파일 권한 확인
+    if os.path.exists(db_path):
+        try:
+            os.chmod(db_path, 0o666)
+        except:
+            pass
+    
+    # 새로운 연결 생성 (캐시되지 않음)
+    conn = sqlite3.connect(
+        db_path,
+        check_same_thread=False,
+        timeout=30.0,
+        isolation_level=None  # autocommit 모드
+    )
+    
+    # WAL 모드 설정
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except:
+        pass
+    
+    return conn
+
+
+def test_write_permission():
+    """
+    데이터베이스 쓰기 권한 테스트
+    
+    Returns:
+        bool: 쓰기 가능 여부
+    """
+    try:
+        conn = get_writable_connection()
+        
+        # 테스트 테이블 생성/삭제
+        conn.execute("CREATE TABLE IF NOT EXISTS test_write (id INTEGER)")
+        conn.execute("INSERT INTO test_write (id) VALUES (1)")
+        conn.execute("DELETE FROM test_write")
+        conn.execute("DROP TABLE test_write")
+        
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"쓰기 권한 테스트 실패: {e}")
+        return False
 
 
 def get_table_info(conn):
