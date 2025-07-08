@@ -695,13 +695,13 @@ elif menu == "통합 데이터 조회":
             col1, col2, col3 = st.columns([1, 1, 2])
             
             with col1:
-if st.button("💾 변경사항 저장", type="primary"):
-    try:
-        # 새로운 쓰기 가능한 연결 생성
-        write_conn = get_writable_connection()
-        
-        changes_count = 0
-        errors = []
+                if st.button("💾 변경사항 저장", type="primary"):
+                    try:
+                        # 새로운 쓰기 가능한 연결 생성
+                        write_conn = get_writable_connection()
+                        
+                        changes_count = 0
+                        errors = []
         
         # 원본과 편집된 데이터 비교
         for idx, (original_row, edited_row) in enumerate(zip(companies_df.itertuples(), edited_df.itertuples())):
